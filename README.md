@@ -49,10 +49,11 @@ cd perroloko-pickup
 npm install
 ```
 
-Copy the example config and set your script ID:
+Copy the example configs:
 
 ```bash
 cp .clasp.json.example .clasp.json
+cp src/Config.js.example src/Config.js
 ```
 
 Edit `.clasp.json` and replace the `scriptId` with yours:
