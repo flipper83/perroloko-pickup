@@ -78,40 +78,143 @@ function findRowByToken(token) {
 }
 
 /**
- * Processes a check-in for the given token.
+ * Reads all orders from the sheet in a single getValues() call.
+ *
+ * @returns {{ orders: Array, serverTime: string }}
+ */
+function getAllOrders() {
+  var sheet = getResponseSheet();
+  var cols = ensureScriptColumns(sheet);
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+    return { orders: [], serverTime: new Date().toISOString() };
+  }
+
+  var data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  var orders = [];
+
+  for (var i = 0; i < data.length; i++) {
+    var row = data[i];
+    var products = {};
+    for (var p = 0; p < CONFIG.PRODUCTS.length; p++) {
+      var colIndex = CONFIG.PRODUCT_START_COL - 1 + p; // 0-based in the row array
+      products[CONFIG.PRODUCTS[p]] = parseInt(row[colIndex], 10) || 0;
+    }
+
+    orders.push({
+      rowIndex: i + 2,
+      timestamp: row[CONFIG.COL_TIMESTAMP - 1] ? new Date(row[CONFIG.COL_TIMESTAMP - 1]).toISOString() : '',
+      email: row[CONFIG.COL_EMAIL - 1] || '',
+      name: row[CONFIG.COL_NAME - 1] || '',
+      pickupDay: (row[CONFIG.COL_PICKUP_DAY - 1] || '').toString().toLowerCase(),
+      products: products,
+      token: row[cols.tokenCol - 1] || '',
+      qrSent: row[cols.qrSentCol - 1] || '',
+      deliveredAt: row[cols.checkedInCol - 1] ? new Date(row[cols.checkedInCol - 1]).toISOString() : null
+    });
+  }
+
+  return { orders: orders, serverTime: new Date().toISOString() };
+}
+
+/**
+ * Marks an order as delivered by token. Returns richer data than checkInByToken.
  *
  * @param {string} token - UUID token from QR code
- * @returns {{ status: string, message: string, name: string|null }}
- *   status: 'success' | 'already' | 'not_found'
+ * @returns {{ status: string, message: string, order: Object|null }}
+ *   status: 'success' | 'already_delivered' | 'not_found'
  */
-function checkInByToken(token) {
+function markDeliveredByToken(token) {
   var sheet = getResponseSheet();
   var cols = ensureScriptColumns(sheet);
   var row = findRowByToken(token);
 
   if (!row) {
-    return { status: 'not_found', message: 'Token no encontrado', name: null };
+    return { status: 'not_found', message: 'Token no encontrado', order: null };
   }
 
-  // Check if already checked in
-  var checkedInValue = sheet.getRange(row, cols.checkedInCol).getValue();
+  var rowData = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  var products = {};
+  for (var p = 0; p < CONFIG.PRODUCTS.length; p++) {
+    var colIndex = CONFIG.PRODUCT_START_COL - 1 + p;
+    products[CONFIG.PRODUCTS[p]] = parseInt(rowData[colIndex], 10) || 0;
+  }
+
+  var order = {
+    rowIndex: row,
+    timestamp: rowData[CONFIG.COL_TIMESTAMP - 1] ? new Date(rowData[CONFIG.COL_TIMESTAMP - 1]).toISOString() : '',
+    email: rowData[CONFIG.COL_EMAIL - 1] || '',
+    name: rowData[CONFIG.COL_NAME - 1] || '',
+    pickupDay: (rowData[CONFIG.COL_PICKUP_DAY - 1] || '').toString().toLowerCase(),
+    products: products,
+    token: rowData[cols.tokenCol - 1] || '',
+    qrSent: rowData[cols.qrSentCol - 1] || '',
+    deliveredAt: null
+  };
+
+  // Check if already delivered
+  var checkedInValue = rowData[cols.checkedInCol - 1];
   if (checkedInValue) {
-    var name = sheet.getRange(row, 3).getValue(); // Column C = Name
+    order.deliveredAt = new Date(checkedInValue).toISOString();
     return {
-      status: 'already',
-      message: 'Ya se hizo check-in el ' + checkedInValue,
-      name: name
+      status: 'already_delivered',
+      message: 'Ya entregado el ' + order.deliveredAt,
+      order: order
     };
   }
 
-  // Mark as checked in
-  var timestamp = new Date().toISOString();
-  sheet.getRange(row, cols.checkedInCol).setValue(timestamp);
+  // Mark as delivered
+  var now = new Date().toISOString();
+  sheet.getRange(row, cols.checkedInCol).setValue(now);
+  order.deliveredAt = now;
 
-  var name = sheet.getRange(row, 3).getValue(); // Column C = Name
   return {
     status: 'success',
-    message: 'Check-in completado',
-    name: name
+    message: 'Entrega completada',
+    order: order
   };
+}
+
+/**
+ * Batch processes pending deliveries and returns full order state.
+ *
+ * @param {Array} pendingDeliveries - Array of {token, localTimestamp}
+ * @returns {{ results: Array, orders: Array, serverTime: string }}
+ */
+function syncDeliveries(pendingDeliveries) {
+  var results = [];
+
+  if (pendingDeliveries && pendingDeliveries.length > 0) {
+    for (var i = 0; i < pendingDeliveries.length; i++) {
+      var result = markDeliveredByToken(pendingDeliveries[i].token);
+      result.localTimestamp = pendingDeliveries[i].localTimestamp;
+      results.push(result);
+    }
+  }
+
+  var allOrders = getAllOrders();
+
+  return {
+    results: results,
+    orders: allOrders.orders,
+    serverTime: allOrders.serverTime
+  };
+}
+
+/**
+ * Backward-compatible check-in wrapper over markDeliveredByToken.
+ *
+ * @param {string} token - UUID token from QR code
+ * @returns {{ status: string, message: string, name: string|null }}
+ */
+function checkInByToken(token) {
+  var result = markDeliveredByToken(token);
+
+  // Map new statuses to old format
+  var status = result.status === 'already_delivered' ? 'already' : result.status;
+  var name = result.order ? result.order.name : null;
+
+  return { status: status, message: result.message, name: name };
 }

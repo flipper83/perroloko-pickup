@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pickup</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    .header {
+      width: 100%;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #16213e;
+      border-bottom: 3px solid #4CAF50;
+    }
+
+    .header h1 { font-size: 1.1em; color: #4CAF50; }
+
+    .connection-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #f44336;
+      flex-shrink: 0;
+    }
+
+    .connection-dot.online { background: #4CAF50; }
+
+    /* ── Tab Bar ─────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      background: #16213e;
+      border-bottom: 1px solid #333;
+    }
+
+    .tab-bar button {
+      flex: 1;
+      padding: 10px 4px;
+      border: none;
+      background: transparent;
+      color: #888;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .tab-bar button.active {
+      color: #4CAF50;
+      border-bottom-color: #4CAF50;
+    }
+
+    .tab-bar button .tab-icon {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 2px;
+    }
+
+    /* ── Tab Content ─────────────────────────────────────── */
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: none;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .tab-content.active { display: block; }
+
+    /* ── Pedidos Tab ──────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-bar button {
+      padding: 6px 12px;
+      border: 1px solid #444;
+      border-radius: 16px;
+      background: transparent;
+      color: #aaa;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .filter-bar button.active {
+      background: #4CAF50;
+      border-color: #4CAF50;
+      color: #fff;
+    }
+
+    .search-box {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      background: #16213e;
+      color: #eee;
+      font-size: 15px;
+      margin-bottom: 12px;
+    }
+
+    .search-box:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+
+    .order-card {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid #333;
+    }
+
+    .order-card.delivered {
+      opacity: 0.6;
+      border-color: #2e7d32;
+    }
+
+    .order-card .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .order-card .order-name {
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .order-card .order-day {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #333;
+      color: #ccc;
+    }
+
+    .order-card .order-products {
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+
+    .order-card .order-status {
+      font-size: 12px;
+      color: #4CAF50;
+    }
+
+    .btn-deliver {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #4CAF50;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .btn-deliver:active { background: #388E3C; }
+
+    .btn-deliver:disabled {
+      background: #333;
+      color: #666;
+      cursor: default;
+    }
+
+    .orders-count {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    /* ── Escanear Tab ─────────────────────────────────────── */
+    #reader {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .manual-input {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .manual-input input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      background: #16213e;
+      color: #eee;
+      font-size: 16px;
+    }
+
+    .manual-input input:focus {
+      outline: none;
+      border-color: #4CAF50;
+    }
+
+    .manual-input button, #toggle-camera {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #4CAF50;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .manual-input button:active, #toggle-camera:active { background: #388E3C; }
+
+    #toggle-camera {
+      width: 100%;
+      margin-bottom: 12px;
+      border: 2px solid #4CAF50;
+      background: transparent;
+      color: #4CAF50;
+    }
+
+    .scan-result {
+      padding: 16px;
+      border-radius: 10px;
+      text-align: center;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .scan-result.success {
+      background: #1b5e20;
+      border: 2px solid #4CAF50;
+      display: block;
+    }
+
+    .scan-result.already_delivered {
+      background: #e65100;
+      border: 2px solid #FF9800;
+      display: block;
+    }
+
+    .scan-result.not_found {
+      background: #b71c1c;
+      border: 2px solid #f44336;
+      display: block;
+    }
+
+    .scan-result .icon { font-size: 48px; margin-bottom: 8px; }
+    .scan-result .name { font-size: 1.3em; font-weight: bold; margin: 6px 0; }
+    .scan-result .message { font-size: 14px; opacity: 0.9; }
+    .scan-result .order-detail { font-size: 13px; margin-top: 8px; color: rgba(255,255,255,0.8); }
+
+    .scan-result .dismiss {
+      margin-top: 12px;
+      padding: 10px 24px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      background: transparent;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      display: none;
+    }
+
+    .loading.active { display: block; }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #333;
+      border-top-color: #4CAF50;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Stock Tab ────────────────────────────────────────── */
+    .stock-day-filter {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .stock-day-filter button {
+      padding: 6px 12px;
+      border: 1px solid #444;
+      border-radius: 16px;
+      background: transparent;
+      color: #aaa;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .stock-day-filter button.active {
+      background: #4CAF50;
+      border-color: #4CAF50;
+      color: #fff;
+    }
+
+    .stock-card {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid #333;
+    }
+
+    .stock-card h3 {
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+
+    .stock-numbers {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+
+    .stock-bar {
+      width: 100%;
+      height: 8px;
+      background: #333;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .stock-bar-fill {
+      height: 100%;
+      background: #4CAF50;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .stock-bar-fill.warning { background: #FF9800; }
+    .stock-bar-fill.danger { background: #f44336; }
+
+    .stock-remaining {
+      font-size: 22px;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* ── Sync Tab ─────────────────────────────────────────── */
+    .sync-info {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 16px;
+      border: 1px solid #333;
+    }
+
+    .sync-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #2a2a3e;
+      font-size: 14px;
+    }
+
+    .sync-row:last-child { border-bottom: none; }
+
+    .sync-row .label { color: #aaa; }
+    .sync-row .value { font-weight: bold; }
+
+    .btn-sync {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      background: #4CAF50;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+
+    .btn-sync:active { background: #388E3C; }
+
+    .btn-sync:disabled {
+      background: #333;
+      color: #666;
+      cursor: default;
+    }
+
+    /* ── Toast ────────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      border-radius: 8px;
+      background: #333;
+      color: #eee;
+      font-size: 14px;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .toast.visible { opacity: 1; }
+    .toast.success { background: #1b5e20; }
+    .toast.error { background: #b71c1c; }
+    .toast.warning { background: #e65100; }
+
+    .pending-badge {
+      display: inline-block;
+      background: #FF9800;
+      color: #fff;
+      border-radius: 10px;
+      padding: 0 6px;
+      font-size: 11px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Perroloko Pickup</h1>
+    <div class="connection-dot" id="connection-dot" title="Estado de conexión"></div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="active" onclick="switchTab('pedidos')">
+      <span class="tab-icon">&#128230;</span>Pedidos
+    </button>
+    <button onclick="switchTab('escanear')">
+      <span class="tab-icon">&#128247;</span>Escanear
+    </button>
+    <button onclick="switchTab('stock')">
+      <span class="tab-icon">&#128202;</span>Stock
+    </button>
+    <button onclick="switchTab('sync')">
+      <span class="tab-icon">&#128260;</span>Sync<span class="pending-badge" id="pending-badge" style="display:none">0</span>
+    </button>
+  </div>
+
+  <!-- ── Pedidos Tab ──────────────────────────────────── -->
+  <div class="tab-content active" id="tab-pedidos">
+    <div class="filter-bar" id="day-filter"></div>
+    <input type="text" class="search-box" id="search-input"
+           placeholder="Buscar por nombre o token..."
+           oninput="renderOrders()">
+    <div class="orders-count" id="orders-count"></div>
+    <div id="orders-list"></div>
+  </div>
+
+  <!-- ── Escanear Tab ─────────────────────────────────── -->
+  <div class="tab-content" id="tab-escanear">
+    <button id="toggle-camera" onclick="toggleCamera()">Iniciar Camara</button>
+    <div id="reader"></div>
+    <div class="manual-input">
+      <input type="text" id="token-input" placeholder="Introducir token..."
+             onkeydown="if(event.key==='Enter') manualDelivery()">
+      <button onclick="manualDelivery()">OK</button>
+    </div>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Procesando...</p>
+    </div>
+    <div class="scan-result" id="scan-result"></div>
+  </div>
+
+  <!-- ── Stock Tab ────────────────────────────────────── -->
+  <div class="tab-content" id="tab-stock">
+    <div class="stock-day-filter" id="stock-day-filter"></div>
+    <div id="stock-dashboard"></div>
+  </div>
+
+  <!-- ── Sync Tab ─────────────────────────────────────── -->
+  <div class="tab-content" id="tab-sync">
+    <div class="sync-info">
+      <div class="sync-row">
+        <span class="label">Estado</span>
+        <span class="value" id="sync-status">--</span>
+      </div>
+      <div class="sync-row">
+        <span class="label">Ultima sincronizacion</span>
+        <span class="value" id="sync-last-time">--</span>
+      </div>
+      <div class="sync-row">
+        <span class="label">Entregas pendientes</span>
+        <span class="value" id="sync-pending-count">0</span>
+      </div>
+      <div class="sync-row">
+        <span class="label">Total pedidos</span>
+        <span class="value" id="sync-total-orders">0</span>
+      </div>
+    </div>
+    <button class="btn-sync" id="btn-force-sync" onclick="forceSync()">Sincronizar ahora</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Injected Config ──────────────────────────────────
+    var APP_CONFIG = <?!= configJson ?>;
+    var autoToken = '<?= autoToken ?>';
+
+    // ── DataStore (localStorage) ─────────────────────────
+    var DataStore = (function() {
+      var KEYS = {
+        ORDERS: 'pp_orders',
+        PENDING: 'pp_pending_deliveries',
+        LAST_SYNC: 'pp_last_sync'
+      };
+
+      function getOrders() {
+        try {
+          return JSON.parse(localStorage.getItem(KEYS.ORDERS)) || [];
+        } catch(e) { return []; }
+      }
+
+      function setOrders(orders) {
+        localStorage.setItem(KEYS.ORDERS, JSON.stringify(orders));
+      }
+
+      function getPending() {
+        try {
+          return JSON.parse(localStorage.getItem(KEYS.PENDING)) || [];
+        } catch(e) { return []; }
+      }
+
+      function setPending(pending) {
+        localStorage.setItem(KEYS.PENDING, JSON.stringify(pending));
+      }
+
+      function getLastSync() {
+        return localStorage.getItem(KEYS.LAST_SYNC) || null;
+      }
+
+      function setLastSync(isoString) {
+        localStorage.setItem(KEYS.LAST_SYNC, isoString);
+      }
+
+      function markDeliveredLocally(token) {
+        var orders = getOrders();
+        var found = null;
+        var now = new Date().toISOString();
+
+        for (var i = 0; i < orders.length; i++) {
+          if (orders[i].token === token) {
+            if (orders[i].deliveredAt) {
+              return { status: 'already_delivered', order: orders[i] };
+            }
+            orders[i].deliveredAt = now;
+            found = orders[i];
+            break;
+          }
+        }
+
+        if (!found) {
+          return { status: 'not_found', order: null };
+        }
+
+        setOrders(orders);
+
+        // Add to pending queue
+        var pending = getPending();
+        pending.push({ token: token, localTimestamp: now });
+        setPending(pending);
+
+        return { status: 'success', order: found };
+      }
+
+      function mergeServerData(serverOrders, syncResults) {
+        // Build a set of tokens that were successfully synced
+        var syncedTokens = {};
+        if (syncResults) {
+          for (var i = 0; i < syncResults.length; i++) {
+            if (syncResults[i].status === 'success' || syncResults[i].status === 'already_delivered') {
+              syncedTokens[syncResults[i].order ? syncResults[i].order.token : ''] = true;
+            }
+          }
+        }
+
+        // Remove synced items from pending
+        var pending = getPending();
+        var remaining = [];
+        for (var j = 0; j < pending.length; j++) {
+          if (!syncedTokens[pending[j].token]) {
+            remaining.push(pending[j]);
+          }
+        }
+        setPending(remaining);
+
+        // Server is truth, but apply local pending deliveries on top
+        var orders = serverOrders;
+        if (remaining.length > 0) {
+          var pendingMap = {};
+          for (var k = 0; k < remaining.length; k++) {
+            pendingMap[remaining[k].token] = remaining[k].localTimestamp;
+          }
+          for (var m = 0; m < orders.length; m++) {
+            if (pendingMap[orders[m].token] && !orders[m].deliveredAt) {
+              orders[m].deliveredAt = pendingMap[orders[m].token];
+            }
+          }
+        }
+
+        setOrders(orders);
+        setLastSync(new Date().toISOString());
+      }
+
+      function getOrdersByDay(day) {
+        var orders = getOrders();
+        if (!day || day === 'todos') return orders;
+        return orders.filter(function(o) { return o.pickupDay === day; });
+      }
+
+      function searchOrders(query, day) {
+        var orders = getOrdersByDay(day);
+        if (!query) return orders;
+        var q = query.toLowerCase();
+        return orders.filter(function(o) {
+          return (o.name && o.name.toLowerCase().indexOf(q) >= 0) ||
+                 (o.token && o.token.toLowerCase().indexOf(q) >= 0);
+        });
+      }
+
+      function getStockFromCache(day) {
+        var orders = getOrdersByDay(day);
+        var stock = {};
+        for (var p = 0; p < APP_CONFIG.products.length; p++) {
+          var prod = APP_CONFIG.products[p];
+          stock[prod] = { ordered: 0, delivered: 0 };
+        }
+
+        for (var i = 0; i < orders.length; i++) {
+          var o = orders[i];
+          for (var pr = 0; pr < APP_CONFIG.products.length; pr++) {
+            var pName = APP_CONFIG.products[pr];
+            var qty = (o.products && o.products[pName]) ? o.products[pName] : 0;
+            stock[pName].ordered += qty;
+            if (o.deliveredAt) {
+              stock[pName].delivered += qty;
+            }
+          }
+        }
+
+        return stock;
+      }
+
+      return {
+        getOrders: getOrders,
+        setOrders: setOrders,
+        getPending: getPending,
+        setPending: setPending,
+        getLastSync: getLastSync,
+        setLastSync: setLastSync,
+        markDeliveredLocally: markDeliveredLocally,
+        mergeServerData: mergeServerData,
+        getOrdersByDay: getOrdersByDay,
+        searchOrders: searchOrders,
+        getStockFromCache: getStockFromCache
+      };
+    })();
+
+    // ── SyncEngine ───────────────────────────────────────
+    var SyncEngine = (function() {
+      var syncing = false;
+      var syncTimer = null;
+
+      function isOnline() {
+        return navigator.onLine;
+      }
+
+      function updateConnectionUI() {
+        var dot = document.getElementById('connection-dot');
+        dot.className = 'connection-dot' + (isOnline() ? ' online' : '');
+        document.getElementById('sync-status').textContent = isOnline() ? 'Conectado' : 'Sin conexion';
+      }
+
+      function sync(callback) {
+        if (syncing) return;
+        if (!isOnline()) {
+          updateSyncUI();
+          if (callback) callback(false);
+          return;
+        }
+
+        syncing = true;
+        updateSyncUI();
+
+        var pending = DataStore.getPending();
+        var pendingJson = JSON.stringify(pending);
+
+        google.script.run
+          .withSuccessHandler(function(response) {
+            syncing = false;
+            DataStore.mergeServerData(response.orders, response.results);
+            updateSyncUI();
+            refreshAllViews();
+
+            // Show sync results as toasts
+            if (response.results) {
+              for (var i = 0; i < response.results.length; i++) {
+                var r = response.results[i];
+                if (r.status === 'already_delivered') {
+                  showToast('Entrega de ' + (r.order ? r.order.name : '??') + ': ya registrada por otro dispositivo', 'warning');
+                }
+              }
+            }
+
+            if (pending.length > 0) {
+              showToast('Sincronizado: ' + pending.length + ' entrega(s)', 'success');
+            }
+
+            if (callback) callback(true);
+          })
+          .withFailureHandler(function(error) {
+            syncing = false;
+            updateSyncUI();
+            showToast('Error de sync: ' + error.message, 'error');
+            if (callback) callback(false);
+          })
+          .syncData(pendingJson);
+      }
+
+      function startAutoSync() {
+        // Initial sync
+        sync();
+
+        // Periodic sync every 30 seconds
+        syncTimer = setInterval(function() {
+          sync();
+        }, 30000);
+
+        // Sync on coming back online
+        window.addEventListener('online', function() {
+          updateConnectionUI();
+          showToast('Conexion restaurada, sincronizando...', 'success');
+          sync();
+        });
+
+        window.addEventListener('offline', function() {
+          updateConnectionUI();
+          showToast('Sin conexion - modo offline', 'warning');
+        });
+
+        updateConnectionUI();
+      }
+
+      function updateSyncUI() {
+        var pending = DataStore.getPending();
+        var lastSync = DataStore.getLastSync();
+        var orders = DataStore.getOrders();
+
+        document.getElementById('sync-pending-count').textContent = pending.length;
+        document.getElementById('sync-total-orders').textContent = orders.length;
+        document.getElementById('sync-status').textContent = syncing ? 'Sincronizando...' : (isOnline() ? 'Conectado' : 'Sin conexion');
+
+        if (lastSync) {
+          var d = new Date(lastSync);
+          document.getElementById('sync-last-time').textContent =
+            d.toLocaleDateString('es') + ' ' + d.toLocaleTimeString('es');
+        }
+
+        var badge = document.getElementById('pending-badge');
+        if (pending.length > 0) {
+          badge.textContent = pending.length;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+
+        var btnSync = document.getElementById('btn-force-sync');
+        btnSync.disabled = syncing || !isOnline();
+        btnSync.textContent = syncing ? 'Sincronizando...' : 'Sincronizar ahora';
+      }
+
+      return {
+        sync: sync,
+        startAutoSync: startAutoSync,
+        updateSyncUI: updateSyncUI,
+        updateConnectionUI: updateConnectionUI,
+        isSyncing: function() { return syncing; }
+      };
+    })();
+
+    // ── Tab Navigation ───────────────────────────────────
+    var currentTab = 'pedidos';
+
+    function switchTab(tabName) {
+      currentTab = tabName;
+      var tabs = document.querySelectorAll('.tab-content');
+      var buttons = document.querySelectorAll('.tab-bar button');
+
+      for (var i = 0; i < tabs.length; i++) {
+        tabs[i].classList.remove('active');
+      }
+      for (var j = 0; j < buttons.length; j++) {
+        buttons[j].classList.remove('active');
+      }
+
+      document.getElementById('tab-' + tabName).classList.add('active');
+      buttons[['pedidos','escanear','stock','sync'].indexOf(tabName)].classList.add('active');
+
+      if (tabName === 'pedidos') renderOrders();
+      if (tabName === 'stock') renderStock();
+      if (tabName === 'sync') SyncEngine.updateSyncUI();
+    }
+
+    // ── Pedidos Tab ──────────────────────────────────────
+    var currentDayFilter = 'todos';
+
+    function initDayFilter() {
+      var container = document.getElementById('day-filter');
+      var days = ['todos'].concat(APP_CONFIG.pickupDays);
+      var labels = { todos: 'Todos', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sabado' };
+
+      var html = '';
+      for (var i = 0; i < days.length; i++) {
+        html += '<button ' + (days[i] === currentDayFilter ? 'class="active"' : '') +
+                ' onclick="setDayFilter(\'' + days[i] + '\')">' +
+                (labels[days[i]] || days[i]) + '</button>';
+      }
+      container.innerHTML = html;
+    }
+
+    function setDayFilter(day) {
+      currentDayFilter = day;
+      initDayFilter();
+      renderOrders();
+    }
+
+    function renderOrders() {
+      var query = document.getElementById('search-input').value.trim();
+      var orders = DataStore.searchOrders(query, currentDayFilter);
+
+      // Sort: undelivered first, then by name
+      orders.sort(function(a, b) {
+        if (a.deliveredAt && !b.deliveredAt) return 1;
+        if (!a.deliveredAt && b.deliveredAt) return -1;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      var delivered = 0;
+      for (var c = 0; c < orders.length; c++) {
+        if (orders[c].deliveredAt) delivered++;
+      }
+      document.getElementById('orders-count').textContent =
+        orders.length + ' pedido(s) — ' + delivered + ' entregado(s)';
+
+      var list = document.getElementById('orders-list');
+      if (orders.length === 0) {
+        list.innerHTML = '<div class="empty-state">No se encontraron pedidos</div>';
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < orders.length; i++) {
+        var o = orders[i];
+        var dayLabels = { jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sabado' };
+        var prodParts = [];
+        for (var p = 0; p < APP_CONFIG.products.length; p++) {
+          var pName = APP_CONFIG.products[p];
+          var qty = (o.products && o.products[pName]) ? o.products[pName] : 0;
+          if (qty > 0) prodParts.push(pName + ' x' + qty);
+        }
+
+        html += '<div class="order-card' + (o.deliveredAt ? ' delivered' : '') + '">' +
+                  '<div class="order-header">' +
+                    '<span class="order-name">' + escapeHtml(o.name) + '</span>' +
+                    '<span class="order-day">' + (dayLabels[o.pickupDay] || o.pickupDay) + '</span>' +
+                  '</div>' +
+                  '<div class="order-products">' + escapeHtml(prodParts.join(' · ') || 'Sin productos') + '</div>';
+
+        if (o.deliveredAt) {
+          var dt = new Date(o.deliveredAt);
+          html += '<div class="order-status">Entregado ' + dt.toLocaleTimeString('es') + '</div>';
+        } else {
+          html += '<button class="btn-deliver" onclick="deliverOrder(\'' + escapeHtml(o.token) + '\')">Marcar entregado</button>';
+        }
+
+        html += '</div>';
+      }
+
+      list.innerHTML = html;
+    }
+
+    function deliverOrder(token) {
+      var result = DataStore.markDeliveredLocally(token);
+
+      if (result.status === 'success') {
+        showToast('Entregado: ' + (result.order ? result.order.name : ''), 'success');
+        renderOrders();
+        renderStock();
+        SyncEngine.updateSyncUI();
+        SyncEngine.sync();
+      } else if (result.status === 'already_delivered') {
+        showToast('Ya entregado: ' + (result.order ? result.order.name : ''), 'warning');
+      } else {
+        showToast('Token no encontrado en cache', 'error');
+      }
+    }
+
+    // ── Escanear Tab ─────────────────────────────────────
+    var scanner = null;
+    var cameraActive = false;
+    var processing = false;
+
+    function toggleCamera() {
+      if (cameraActive) {
+        stopCamera();
+      } else {
+        startCamera();
+      }
+    }
+
+    function startCamera() {
+      var btn = document.getElementById('toggle-camera');
+      btn.textContent = 'Detener Camara';
+      cameraActive = true;
+
+      scanner = new Html5Qrcode('reader');
+      scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        function() {}
+      ).catch(function(err) {
+        btn.textContent = 'Error: ' + err;
+        cameraActive = false;
+      });
+    }
+
+    function stopCamera() {
+      var btn = document.getElementById('toggle-camera');
+      btn.textContent = 'Iniciar Camara';
+      cameraActive = false;
+      if (scanner) {
+        scanner.stop().catch(function() {});
+      }
+    }
+
+    function onScanSuccess(decodedText) {
+      if (processing) return;
+      var token = decodedText;
+      try {
+        var url = new URL(decodedText);
+        var paramToken = url.searchParams.get('token');
+        if (paramToken) token = paramToken;
+      } catch(e) {}
+
+      processScan(token);
+    }
+
+    function manualDelivery() {
+      var input = document.getElementById('token-input');
+      var token = input.value.trim();
+      if (!token) return;
+      input.value = '';
+      processScan(token);
+    }
+
+    function processScan(token) {
+      if (processing) return;
+      processing = true;
+
+      // Try local first for instant feedback
+      var localResult = DataStore.markDeliveredLocally(token);
+
+      if (localResult.status !== 'not_found') {
+        showScanResult(localResult);
+        processing = false;
+        renderOrders();
+        renderStock();
+        SyncEngine.updateSyncUI();
+        SyncEngine.sync();
+        return;
+      }
+
+      // Not in cache - try server if online
+      if (navigator.onLine) {
+        document.getElementById('loading').classList.add('active');
+        document.getElementById('scan-result').className = 'scan-result';
+
+        google.script.run
+          .withSuccessHandler(function(result) {
+            document.getElementById('loading').classList.remove('active');
+            processing = false;
+
+            // If server found it, sync to get full data
+            if (result.status === 'success' || result.status === 'already_delivered') {
+              SyncEngine.sync();
+            }
+
+            showScanResult({
+              status: result.status,
+              order: result.order
+            });
+          })
+          .withFailureHandler(function(error) {
+            document.getElementById('loading').classList.remove('active');
+            processing = false;
+            showScanResult({
+              status: 'not_found',
+              order: null,
+              errorMessage: error.message
+            });
+          })
+          .processDelivery(token);
+      } else {
+        processing = false;
+        showScanResult({
+          status: 'not_found',
+          order: null,
+          errorMessage: 'Token no encontrado en cache (sin conexion)'
+        });
+      }
+    }
+
+    function showScanResult(result) {
+      var el = document.getElementById('scan-result');
+      var icon = '';
+      var cssClass = '';
+
+      if (result.status === 'success') {
+        icon = '&#10004;';
+        cssClass = 'success';
+      } else if (result.status === 'already_delivered') {
+        icon = '&#9888;';
+        cssClass = 'already_delivered';
+      } else {
+        icon = '&#10008;';
+        cssClass = 'not_found';
+      }
+
+      var orderDetail = '';
+      if (result.order) {
+        var prodParts = [];
+        if (result.order.products) {
+          for (var p = 0; p < APP_CONFIG.products.length; p++) {
+            var pName = APP_CONFIG.products[p];
+            var qty = result.order.products[pName] || 0;
+            if (qty > 0) prodParts.push(pName + ' x' + qty);
+          }
+        }
+        if (prodParts.length > 0) {
+          orderDetail = '<div class="order-detail">' + escapeHtml(prodParts.join(' · ')) + '</div>';
+        }
+      }
+
+      var name = result.order ? result.order.name : '';
+      var message = result.status === 'success' ? 'Entrega completada' :
+                    result.status === 'already_delivered' ? 'Ya entregado' :
+                    (result.errorMessage || 'Token no encontrado');
+
+      el.className = 'scan-result ' + cssClass;
+      el.innerHTML =
+        '<div class="icon">' + icon + '</div>' +
+        (name ? '<div class="name">' + escapeHtml(name) + '</div>' : '') +
+        '<div class="message">' + escapeHtml(message) + '</div>' +
+        orderDetail +
+        '<button class="dismiss" onclick="dismissScanResult()">Siguiente</button>';
+    }
+
+    function dismissScanResult() {
+      var el = document.getElementById('scan-result');
+      el.className = 'scan-result';
+    }
+
+    // ── Stock Tab ────────────────────────────────────────
+    var currentStockDayFilter = 'todos';
+
+    function initStockDayFilter() {
+      var container = document.getElementById('stock-day-filter');
+      var days = ['todos'].concat(APP_CONFIG.pickupDays);
+      var labels = { todos: 'Todos', jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sabado' };
+
+      var html = '';
+      for (var i = 0; i < days.length; i++) {
+        html += '<button ' + (days[i] === currentStockDayFilter ? 'class="active"' : '') +
+                ' onclick="setStockDayFilter(\'' + days[i] + '\')">' +
+                (labels[days[i]] || days[i]) + '</button>';
+      }
+      container.innerHTML = html;
+    }
+
+    function setStockDayFilter(day) {
+      currentStockDayFilter = day;
+      initStockDayFilter();
+      renderStock();
+    }
+
+    function renderStock() {
+      var stock = DataStore.getStockFromCache(currentStockDayFilter);
+      var container = document.getElementById('stock-dashboard');
+      var html = '';
+
+      for (var p = 0; p < APP_CONFIG.products.length; p++) {
+        var prod = APP_CONFIG.products[p];
+        var s = stock[prod];
+        var remaining = s.ordered - s.delivered;
+        var pct = s.ordered > 0 ? Math.round((s.delivered / s.ordered) * 100) : 0;
+        var barClass = pct >= 90 ? 'danger' : (pct >= 70 ? 'warning' : '');
+
+        html += '<div class="stock-card">' +
+                  '<h3>' + escapeHtml(prod) + '</h3>' +
+                  '<div class="stock-numbers">' +
+                    '<span>Pedidos: ' + s.ordered + '</span>' +
+                    '<span>Entregados: ' + s.delivered + '</span>' +
+                  '</div>' +
+                  '<div class="stock-bar">' +
+                    '<div class="stock-bar-fill ' + barClass + '" style="width:' + pct + '%"></div>' +
+                  '</div>' +
+                  '<div class="stock-remaining">Pendientes: ' + remaining + '</div>' +
+                '</div>';
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ── Force Sync ───────────────────────────────────────
+    function forceSync() {
+      SyncEngine.sync(function(ok) {
+        if (ok) showToast('Sincronizacion completada', 'success');
+      });
+    }
+
+    // ── Toast ────────────────────────────────────────────
+    var toastTimer = null;
+
+    function showToast(msg, type) {
+      var el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'toast visible' + (type ? ' ' + type : '');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() {
+        el.className = 'toast';
+      }, 3000);
+    }
+
+    // ── Utilities ────────────────────────────────────────
+    function escapeHtml(text) {
+      if (!text) return '';
+      var div = document.createElement('div');
+      div.appendChild(document.createTextNode(text));
+      return div.innerHTML;
+    }
+
+    function refreshAllViews() {
+      if (currentTab === 'pedidos') renderOrders();
+      if (currentTab === 'stock') renderStock();
+      if (currentTab === 'sync') SyncEngine.updateSyncUI();
+    }
+
+    // ── Init ─────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function() {
+      initDayFilter();
+      initStockDayFilter();
+      renderOrders();
+      renderStock();
+      SyncEngine.startAutoSync();
+
+      // Handle auto-token from QR URL
+      if (autoToken) {
+        switchTab('escanear');
+        setTimeout(function() { processScan(autoToken); }, 500);
+      }
+    });
+  </script>
+</body>
+</html>

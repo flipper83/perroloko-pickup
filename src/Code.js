@@ -31,19 +31,23 @@ function onFormSubmit(e) {
   var sheet = getResponseSheet();
   var row = e.range.getRow();
 
-  // Read submitted data
-  var email = e.namedValues['Email']
-    ? e.namedValues['Email'][0]
-    : e.values[1]; // Column B fallback
-  var name = e.namedValues['Name']
-    ? e.namedValues['Name'][0]
-    : e.values[2]; // Column C fallback
+  // Read submitted data using explicit column indices (0-based for e.values[])
+  var email = e.values[CONFIG.COL_EMAIL - 1] || '';
+  var name = e.values[CONFIG.COL_NAME - 1] || '';
+  var pickupDay = (e.values[CONFIG.COL_PICKUP_DAY - 1] || '').toString().toLowerCase();
+
+  // Read product quantities
+  var products = [];
+  for (var i = 0; i < CONFIG.PRODUCTS.length; i++) {
+    var qty = parseInt(e.values[CONFIG.PRODUCT_START_COL - 1 + i], 10) || 0;
+    products.push({ name: CONFIG.PRODUCTS[i], qty: qty });
+  }
 
   var token = generateToken();
 
   try {
     var qrBlob = generateQrCode(token);
-    sendQrEmail(email, name, token, qrBlob);
+    sendQrEmail(email, name, token, qrBlob, products, pickupDay);
     writeTokenToSheet(row, token, 'YES');
     Logger.log('QR sent successfully to ' + email + ' (token: ' + token + ')');
   } catch (error) {

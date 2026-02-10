@@ -14,12 +14,21 @@ var CONFIG = {
   // ── Sheet ────────────────────────────────────────────────────
   SHEET_NAME: 'Form Responses 1',
 
-  // Columns appended by the script (1-based offsets from the end)
-  // These will be resolved dynamically by SheetService based on
-  // the number of form columns detected on first run.
+  // Form columns (1-based)
+  COL_TIMESTAMP: 1,
+  COL_EMAIL: 2,
+  COL_NAME: 3,
+  COL_PICKUP_DAY: 4,
+  PRODUCT_START_COL: 5,
+
+  // Script columns headers (appended after form columns)
   TOKEN_COL_HEADER: 'Token',
   QR_SENT_COL_HEADER: 'QR Sent',
   CHECKED_IN_COL_HEADER: 'Checked In',
+
+  // ── Products & Pickup Days ─────────────────────────────────
+  PRODUCTS: ['Ashes', 'Nijar', 'Orloj'],
+  PICKUP_DAYS: ['jueves', 'viernes', 'sabado'],
 
   // ── QR API ───────────────────────────────────────────────────
   QR_API_BASE: 'https://api.qrserver.com/v1/create-qr-code/',
