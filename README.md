@@ -66,6 +66,45 @@ To work on a *specific* existing instance (e.g. the live Perroloko deployment, o
 particular client's copy), point `.clasp.json`'s `scriptId` at that instance's script ID
 (Extensions → Apps Script → Project Settings, in that Sheet) before pushing.
 
+### The real template (`perroloko-pickup-template/`)
+
+The distributable template already exists. It is a separate Sheet + bound script in
+flipper83's Drive, and **not** the live Perroloko production instance:
+
+| | |
+|---|---|
+| Template Sheet ID | `1a8cXznGcU0RSu4rTkfHtIW52GAU12L1_-Vc_Urf7E3E` |
+| Template Script ID | `1yx8S9OHnSecLOLsKMb8TSF3-uae642p0QWdDUjaffywYttiIfx56AYt-` |
+| Edit | https://docs.google.com/spreadsheets/d/1a8cXznGcU0RSu4rTkfHtIW52GAU12L1_-Vc_Urf7E3E/edit |
+| Share this (copy link) | https://docs.google.com/spreadsheets/d/1a8cXznGcU0RSu4rTkfHtIW52GAU12L1_-Vc_Urf7E3E/copy |
+
+It is intentionally left empty: there's no Form and no Script Properties, and the wizard has
+never been run. Each person who copies it runs "🐕 Configurar Pickup" themselves. For the
+`/copy` link to work for others, sharing must be set to "Anyone with the link → Viewer".
+
+Locally, it lives in a sibling folder, `../perroloko-pickup-template/`. That folder is **not**
+a git repo. Its `src/` is just a mirror of this repo's `src/`, and the only file of its own is
+`.clasp.json`, which points at the template script. Keeping it in its own folder means a
+push there can never hit the live production script by accident.
+
+**Keeping it in sync** (after each change to production; it only needs `push`, never
+`deploy`, because each client deploys their own copy):
+
+```bash
+cp src/*.js src/*.html src/appsscript.json ../perroloko-pickup-template/src/
+cd ../perroloko-pickup-template && npx -y @google/clasp push --force
+```
+
+**If the folder is lost**, recreate it from the template script:
+
+```bash
+mkdir ../perroloko-pickup-template && cd ../perroloko-pickup-template
+npx -y @google/clasp clone 1yx8S9OHnSecLOLsKMb8TSF3-uae642p0QWdDUjaffywYttiIfx56AYt- --rootDir src
+```
+
+(or create `.clasp.json` by hand with that `scriptId` and `"rootDir": "src"`, then copy `src/`
+from this repo).
+
 ### Config storage
 
 There is no `Config.js` to hand-edit per instance anymore. All per-instance settings
