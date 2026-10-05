@@ -1,4 +1,5 @@
 node_modules/
 .clasp.json
 .clasprc.json
-src/Config.js
+.claude/settings.local.json
+.DS_Store

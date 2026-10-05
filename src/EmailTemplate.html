@@ -9,19 +9,23 @@
   </div>
 
   <div style="padding: 20px 0;">
-    <p>Hola <strong><?= name ?></strong>,</p>
-    <p>Gracias por tu pedido en <strong><?= eventName ?></strong>.</p>
+    <p>Hi <strong><?= name ?></strong>,</p>
+    <? if (isUpdate) { ?>
+    <p>We've updated your order at <strong><?= eventName ?></strong>. Your QR code below is unchanged and still works — no need to request a new one.</p>
+    <? } else { ?>
+    <p>Thank you for your order at <strong><?= eventName ?></strong>.</p>
+    <? } ?>
   </div>
 
   <? if (pickupDay) { ?>
   <div style="padding: 10px 20px; background: #e8f5e9; border-radius: 8px; margin-bottom: 16px;">
-    <p style="margin: 0; font-size: 16px;"><strong>Dia de recogida:</strong> <?= pickupDay.charAt(0).toUpperCase() + pickupDay.slice(1) ?></p>
+    <p style="margin: 0; font-size: 16px;"><strong>Pickup day:</strong> <?= pickupDay.charAt(0).toUpperCase() + pickupDay.slice(1) ?></p>
   </div>
   <? } ?>
 
   <? if (products && products.length > 0) { ?>
   <div style="padding: 16px 20px; background: #f5f5f5; border-radius: 8px; margin-bottom: 16px;">
-    <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 16px;">Tu pedido:</p>
+    <p style="margin: 0 0 8px 0; font-weight: bold; font-size: 16px;"><?= isUpdate ? 'Your updated order:' : 'Your order:' ?></p>
     <table style="width: 100%; border-collapse: collapse;">
       <? for (var i = 0; i < products.length; i++) { ?>
         <? if (products[i].qty > 0) { ?>
@@ -35,7 +39,7 @@
   </div>
   <? } ?>
 
-  <p>Presenta este codigo QR en el punto de recogida para retirar tu pedido:</p>
+  <p>Show this QR code at the pickup point to collect your order:</p>
 
   <div style="text-align: center; padding: 20px; background: #f9f9f9; border-radius: 8px;">
     <img src="cid:qrCodeImage" alt="QR Check-in" width="250" height="250"
@@ -43,12 +47,12 @@
   </div>
 
   <div style="padding: 20px 0; font-size: 14px; color: #666;">
-    <p>Tu codigo de acceso: <code style="background: #eee; padding: 2px 6px; border-radius: 3px;"><?= token ?></code></p>
-    <p>Si no puedes escanear el QR, puedes dar este codigo al personal del evento.</p>
+    <p>Your access code: <code style="background: #eee; padding: 2px 6px; border-radius: 3px;"><?= token ?></code></p>
+    <p>If you can't scan the QR code, you can give this code to the event staff.</p>
   </div>
 
   <div style="text-align: center; padding: 15px 0; border-top: 1px solid #eee; font-size: 12px; color: #999;">
-    <p>Nos vemos en <?= eventName ?>!</p>
+    <p>See you at <?= eventName ?>!</p>
   </div>
 </body>
 </html>

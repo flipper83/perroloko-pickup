@@ -11,6 +11,9 @@ function doGet(e) {
   // If a token was passed via QR scan (direct URL), auto-process it
   template.autoToken = (e && e.parameter && e.parameter.token) ? e.parameter.token : '';
 
+  // Event name for the header (server-rendered, not part of the client-side config blob)
+  template.eventName = CONFIG.EVENT_NAME;
+
   // Inject config for client-side use
   template.configJson = JSON.stringify({
     eventName: CONFIG.EVENT_NAME,
@@ -46,6 +49,29 @@ function processDelivery(token) {
     return { status: 'not_found', message: 'Token vacío o inválido', order: null };
   }
   return markDeliveredByToken(token.trim());
+}
+
+/**
+ * Adjusts the delivered quantity per product for an order (partial pickup support).
+ * Called from client via google.script.run.
+ *
+ * @param {string} token - UUID token
+ * @param {string} deliveredProductsJson - JSON string of { productName: qty }
+ * @returns {{ status: string, message: string, order: Object|null }}
+ */
+function adjustDelivery(token, deliveredProductsJson) {
+  if (!token || typeof token !== 'string' || token.trim() === '') {
+    return { status: 'not_found', message: 'Token vacío o inválido', order: null };
+  }
+
+  var deliveredProducts = {};
+  try {
+    deliveredProducts = JSON.parse(deliveredProductsJson) || {};
+  } catch (e) {
+    // ignore parse errors, treat as empty (everything clamped to 0)
+  }
+
+  return setDeliveredQuantities(token.trim(), deliveredProducts);
 }
 
 /**

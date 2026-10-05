@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #202124;
+      margin: 0;
+      padding: 16px;
+    }
+    h2 { font-size: 16px; margin: 0 0 4px; }
+    p.hint { color: #666; margin: 0 0 16px; font-size: 12.5px; }
+    label { display: block; font-weight: 600; margin: 16px 0 6px; }
+    input[type=text] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    input[type=text]:focus { outline: none; border-color: #4CAF50; }
+    .list-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .list-row input { flex: 1; }
+    .list-row input.limit-input { flex: none; width: 74px; }
+    .list-row input.limit-input:disabled { background: #f1f3f4; color: #888; }
+    .list-row button {
+      border: none;
+      background: #f1f3f4;
+      color: #666;
+      border-radius: 6px;
+      width: 32px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .add-row {
+      border: 1px dashed #ccc;
+      background: transparent;
+      color: #4CAF50;
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 13px;
+      width: 100%;
+    }
+    .banner {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .banner.visible { display: block; }
+    .banner.danger { background: #fdecea; border-color: #f5c6cb; }
+    .banner.danger label { font-weight: 400; margin: 8px 0 0; display: flex; gap: 6px; align-items: flex-start; }
+    .checkbox-row { display: flex; gap: 8px; align-items: flex-start; margin-top: 16px; }
+    .checkbox-row input { flex: none; width: auto; margin-top: 3px; }
+    .checkbox-row label { font-weight: 400; margin: 0; }
+    .checkbox-row p.hint { margin: 2px 0 0; }
+    .locked-note { color: #666; font-size: 12.5px; margin-top: 16px; }
+    .actions { margin-top: 20px; display: flex; gap: 8px; }
+    button.primary {
+      flex: 1;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.primary:disabled { background: #a5d6a7; cursor: default; }
+    .error {
+      color: #c62828;
+      font-size: 13px;
+      margin-top: 10px;
+      display: none;
+    }
+    .error.visible { display: block; }
+    .result {
+      display: none;
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .result.visible { display: block; }
+    .result a { color: #2e7d32; word-break: break-all; }
+    .result code { background: #fff; padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h2>Configurar evento</h2>
+  <p class="hint">Estos datos generan el formulario de pedidos y la app de escaneo. No necesitas tocar código.</p>
+
+  <div class="banner" id="already-banner">
+    Ya existe un formulario para esta copia. Guardar aquí solo actualiza el nombre/productos/días
+    guardados — <strong>no</strong> crea un formulario nuevo. Para un evento completamente distinto,
+    haz una copia nueva de esta plantilla.
+  </div>
+
+  <div class="banner danger" id="data-warning-banner">
+    Esta hoja ya tiene datos en la pestaña de respuestas, pero no hay un formulario registrado
+    (probablemente se creó a mano, no con este asistente). Crear un formulario aquí generará
+    <strong>uno nuevo y separado</strong> — no se tocarán los datos existentes, pero probablemente
+    no es lo que quieres en una hoja que ya está en uso.
+    <label><input type="checkbox" id="confirm-anyway"> Entiendo, crear formulario de todas formas</label>
+  </div>
+
+  <label>Nombre del evento</label>
+  <input type="text" id="event-name" placeholder="Ej: Pickup Empresa X">
+
+  <label>Productos</label>
+  <p class="hint" style="margin:0 0 8px;">El límite (opcional) es el máximo de unidades que una
+    persona puede pedir de ese producto, sumando todos sus envíos del formulario. Deja en blanco
+    para sin límite. Igual que el resto de preguntas del formulario, el límite solo se puede fijar
+    ahora, al crear el formulario — no se puede cambiar después desde aquí.</p>
+  <div id="products-list"></div>
+  <button type="button" class="add-row" onclick="addProductRow()">+ Añadir producto</button>
+
+  <label>Días de recogida</label>
+  <div id="days-list"></div>
+  <button type="button" class="add-row" onclick="addRow('days-list','Día')">+ Añadir día</button>
+
+  <div class="checkbox-row" id="consent-row">
+    <input type="checkbox" id="marketing-consent-opt">
+    <div>
+      <label for="marketing-consent-opt">Añadir casilla de consentimiento de email marketing</label>
+      <p class="hint">Añade una pregunta opcional al final del formulario: "Quiero recibir
+        comunicaciones y novedades de [evento] por email". Solo se puede decidir ahora, al crear
+        el formulario — una vez creado, esta opción queda fija (se puede editar a mano en Google
+        Forms si hace falta).</p>
+    </div>
+  </div>
+  <p class="locked-note" id="consent-locked-note" style="display:none;"></p>
+
+  <div class="error" id="error-box"></div>
+
+  <div class="actions">
+    <button class="primary" id="submit-btn" onclick="submitSetup()">Crear evento</button>
+  </div>
+
+  <div class="result" id="result-box"></div>
+
+  <script>
+    var state = null;
+
+    function addRow(containerId, placeholder, value) {
+      var container = document.getElementById(containerId);
+      var row = document.createElement('div');
+      row.className = 'list-row';
+      row.innerHTML =
+        '<input type="text" placeholder="' + placeholder + '" value="' + (value ? escapeAttr(value) : '') + '">' +
+        '<button type="button" onclick="this.parentNode.remove()">&times;</button>';
+      container.appendChild(row);
+    }
+
+    function escapeAttr(s) {
+      return String(s).replace(/"/g, '&quot;');
+    }
+
+    function readList(containerId) {
+      var inputs = document.querySelectorAll('#' + containerId + ' input');
+      var values = [];
+      for (var i = 0; i < inputs.length; i++) {
+        var v = inputs[i].value.trim();
+        if (v) values.push(v);
+      }
+      return values;
+    }
+
+    function addProductRow(name, limit, locked) {
+      var container = document.getElementById('products-list');
+      var row = document.createElement('div');
+      row.className = 'list-row product-row';
+      row.innerHTML =
+        '<input type="text" placeholder="Producto" value="' + (name ? escapeAttr(name) : '') + '"' +
+          (locked ? ' disabled' : '') + '>' +
+        '<input type="number" class="limit-input" placeholder="límite" min="0" step="1"' +
+          ' value="' + (limit ? limit : '') + '"' + (locked ? ' disabled' : '') + '>' +
+        (locked ? '' : '<button type="button" onclick="this.parentNode.remove()">&times;</button>');
+      container.appendChild(row);
+    }
+
+    function readProductsList() {
+      var rows = document.querySelectorAll('#products-list .product-row');
+      var result = [];
+      for (var i = 0; i < rows.length; i++) {
+        var nameInput = rows[i].querySelector('input[type=text]');
+        var limitInput = rows[i].querySelector('input[type=number]');
+        var name = nameInput.value.trim();
+        if (!name) continue;
+        var limit = parseInt(limitInput.value, 10);
+        result.push({ name: name, limit: (isNaN(limit) || limit <= 0) ? 0 : limit });
+      }
+      return result;
+    }
+
+    function populate(s) {
+      state = s;
+      document.getElementById('event-name').value = s.eventName;
+
+      document.getElementById('products-list').innerHTML = '';
+      s.products.forEach(function(p) {
+        addProductRow(p, (s.productLimits && s.productLimits[p]) || 0, s.hasForm);
+      });
+
+      document.getElementById('days-list').innerHTML = '';
+      s.pickupDays.forEach(function(d) { addRow('days-list', 'Día', d); });
+
+      var consentRow = document.getElementById('consent-row');
+      var consentLockedNote = document.getElementById('consent-locked-note');
+
+      if (s.hasForm) {
+        document.getElementById('already-banner').className = 'banner visible';
+        document.getElementById('submit-btn').textContent = 'Guardar cambios';
+        showResult(s.formEditUrl, s.formPublishedUrl, s.webAppUrl);
+
+        // Locked in at Form-creation time — just show the decision, not editable here.
+        consentRow.style.display = 'none';
+        consentLockedNote.style.display = 'block';
+        consentLockedNote.textContent = s.marketingConsentEnabled
+          ? '✓ Este formulario ya incluye la casilla de consentimiento de email marketing.'
+          : 'Este formulario no incluye casilla de consentimiento de email marketing (se decide solo al crear el formulario).';
+      } else if (s.sheetHasData) {
+        document.getElementById('data-warning-banner').className = 'banner danger visible';
+        document.getElementById('submit-btn').textContent = 'Crear evento';
+        document.getElementById('submit-btn').disabled = true;
+        document.getElementById('confirm-anyway').addEventListener('change', function(e) {
+          document.getElementById('submit-btn').disabled = !e.target.checked;
+        });
+      } else {
+        document.getElementById('submit-btn').textContent = 'Crear evento';
+      }
+    }
+
+    function showResult(formEditUrl, formPublishedUrl, webAppUrl) {
+      var box = document.getElementById('result-box');
+      box.className = 'result visible';
+      box.innerHTML =
+        '<div><strong>Formulario (compartir con clientes):</strong><br>' +
+          (formPublishedUrl ? '<a href="' + formPublishedUrl + '" target="_blank">' + formPublishedUrl + '</a>' : '—') +
+        '</div>' +
+        '<div style="margin-top:8px"><strong>Formulario (editar preguntas):</strong><br>' +
+          (formEditUrl ? '<a href="' + formEditUrl + '" target="_blank">' + formEditUrl + '</a>' : '—') +
+        '</div>' +
+        '<div style="margin-top:8px"><strong>Web app (personal / escáner):</strong><br>' +
+          (webAppUrl
+            ? '<a href="' + webAppUrl + '" target="_blank">' + webAppUrl + '</a>'
+            : '<span style="color:#666;">(aún no confirmada)</span>') +
+        '</div>' +
+        webAppUrlBox(webAppUrl);
+    }
+
+    function webAppUrlBox(webAppUrl) {
+      return '<div style="margin-top:10px;">' +
+        '<div style="font-size:12.5px; color:#444;">' +
+          (webAppUrl
+            ? 'Si esta URL <strong>no coincide</strong> con la que te dio Apps Script al desplegar ' +
+              '(Deploy &rarr; Manage deployments), pégala aquí abajo:'
+            : 'Aún no está desplegada, o no se ha confirmado la URL. Pasos (una vez por copia):') +
+        '</div>' +
+        (webAppUrl ? '' :
+          '<ol style="margin:6px 0 0 18px; padding:0; font-size:12.5px; color:#444;">' +
+            '<li>Extensions &rarr; Apps Script</li>' +
+            '<li>Botón azul "Deploy" (arriba a la derecha) &rarr; "New deployment"</li>' +
+            '<li>Icono de engranaje junto a "Select type" &rarr; elige "Web app"</li>' +
+            '<li>Execute as: <strong>Me</strong> · Who has access: <strong>Anyone</strong></li>' +
+            '<li>Deploy &rarr; acepta los permisos si te los vuelve a pedir</li>' +
+            '<li>Copia la URL (termina en /exec) y pégala aquí abajo</li>' +
+          '</ol>'
+        ) +
+        '<input type="text" id="webapp-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top:8px;">' +
+        '<button type="button" class="add-row" style="margin-top:6px;" onclick="saveWebAppUrl()">Guardar URL</button>' +
+        '<div id="webapp-save-msg" style="margin-top:4px; font-size:12px;"></div>' +
+      '</div>';
+    }
+
+    function saveWebAppUrl() {
+      var input = document.getElementById('webapp-url-input');
+      var msg = document.getElementById('webapp-save-msg');
+      var url = input.value.trim();
+      msg.style.color = '#666';
+      msg.textContent = 'Guardando...';
+
+      google.script.run
+        .withSuccessHandler(function(newUrl) {
+          state.webAppUrl = newUrl;
+          showResult(state.formEditUrl, state.formPublishedUrl, newUrl);
+        })
+        .withFailureHandler(function(err) {
+          msg.style.color = '#c62828';
+          msg.textContent = err.message || String(err);
+        })
+        .saveWebAppUrlOverride(url);
+    }
+
+    function submitSetup() {
+      var eventName = document.getElementById('event-name').value.trim();
+      var productsWithLimits = readProductsList();
+      var products = productsWithLimits.map(function(p) { return p.name; });
+      var productLimits = {};
+      productsWithLimits.forEach(function(p) {
+        if (p.limit > 0) productLimits[p.name] = p.limit;
+      });
+      var pickupDays = readList('days-list');
+      var addMarketingConsent = document.getElementById('marketing-consent-opt').checked;
+      var errorBox = document.getElementById('error-box');
+      errorBox.className = 'error';
+
+      if (!eventName) { showError('Ponle un nombre al evento.'); return; }
+      if (products.length === 0) { showError('Añade al menos un producto.'); return; }
+      if (pickupDays.length === 0) { showError('Añade al menos un día de recogida.'); return; }
+
+      var btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          btn.disabled = false;
+          btn.textContent = 'Guardar cambios';
+          document.getElementById('already-banner').className = 'banner visible';
+          state.hasForm = true;
+          state.formEditUrl = result.formEditUrl;
+          state.formPublishedUrl = result.formPublishedUrl;
+          state.webAppUrl = result.webAppUrl;
+          state.marketingConsentEnabled = result.marketingConsentEnabled;
+          state.productLimits = result.productLimits;
+          document.getElementById('products-list').innerHTML = '';
+          products.forEach(function(p) {
+            addProductRow(p, (result.productLimits && result.productLimits[p]) || 0, true);
+          });
+          showResult(result.formEditUrl, result.formPublishedUrl, result.webAppUrl);
+
+          document.getElementById('consent-row').style.display = 'none';
+          var note = document.getElementById('consent-locked-note');
+          note.style.display = 'block';
+          note.textContent = result.marketingConsentEnabled
+            ? '✓ Este formulario ya incluye la casilla de consentimiento de email marketing.'
+            : 'Este formulario no incluye casilla de consentimiento de email marketing (se decide solo al crear el formulario).';
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = state && state.hasForm ? 'Guardar cambios' : 'Crear evento';
+          showError(err.message || String(err));
+        })
+        .runSetup(JSON.stringify({
+          eventName: eventName,
+          products: products,
+          pickupDays: pickupDays,
+          addMarketingConsent: addMarketingConsent,
+          productLimits: productLimits
+        }));
+    }
+
+    function showError(msg) {
+      var errorBox = document.getElementById('error-box');
+      errorBox.textContent = msg;
+      errorBox.className = 'error visible';
+    }
+
+    google.script.run.withSuccessHandler(populate).getCurrentSetupState();
+  </script>
+</body>
+</html>
